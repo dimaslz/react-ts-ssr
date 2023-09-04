@@ -1,0 +1,9 @@
+node_modules
+/build
+/dist
+/*.log
+.env
+size-plugin.json
+coverage
+/ssl
+yarn-error.log
