@@ -9,7 +9,6 @@ import { renderPage } from "vite-plugin-ssr/server";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const root = `${__dirname}/..`;
-const isProduction = process.env.NODE_ENV === "production";
 
 startServer();
 
@@ -19,24 +18,10 @@ async function startServer() {
 	app.use(compression());
 
 	// Vite integration
-	if (isProduction) {
-		// In production, we need to serve our static assets ourselves.
-		// (In dev, Vite's middleware serves our static assets.)
-		const sirv = (await import("sirv")).default;
-		app.use(sirv(`${root}/dist/client`));
-	} else {
-		// We instantiate Vite's development server and integrate its middleware to our server.
-		// ⚠️ We instantiate it only in development. (It isn't needed in production and it
-		// would unnecessarily bloat our production server.)
-		const vite = await import("vite");
-		const viteDevMiddleware = (
-			await vite.createServer({
-				root,
-				server: { middlewareMode: true },
-			})
-		).middlewares;
-		app.use(viteDevMiddleware);
-	}
+	// In production, we need to serve our static assets ourselves.
+	// (In dev, Vite's middleware serves our static assets.)
+	const sirv = (await import("sirv")).default;
+	app.use(sirv(`${root}/dist/client`));
 
 	// ...
 	// Other middlewares (e.g. some RPC middleware such as Telefunc)
@@ -48,15 +33,18 @@ async function startServer() {
 		const pageContextInit = {
 			urlOriginal: req.originalUrl,
 		};
+
 		const pageContext = await renderPage(pageContextInit);
+
 		const { httpResponse } = pageContext;
 		if (!httpResponse) {
 			return next();
 		} else {
-			const { body, statusCode, headers, earlyHints } = httpResponse;
-			if (res.writeEarlyHints) {
-				res.writeEarlyHints({ link: earlyHints.map((e) => e.earlyHintLink) });
-			}
+			const { body, statusCode, headers /* , earlyHints */ } = httpResponse;
+
+			// if (res.writeEarlyHints) {
+			// 	res.writeEarlyHints({ link: earlyHints.map((e) => e.earlyHintLink) });
+			// }
 
 			headers.forEach(([name, value]) => res.setHeader(name, value));
 			res.status(statusCode);
